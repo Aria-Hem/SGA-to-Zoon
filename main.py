@@ -47,12 +47,11 @@ def draw_ellipse_on_png(im, x0, y0, ba, pa, major_axis_diameter_arcsec,
     paste_shift_y = int(y0 - rotated_height / 2)
     im.paste(rotated, (paste_shift_x, paste_shift_y), rotated)
 
-def galaxy_image_exporter(table,ellipse = True, show = True, save = False):  #Downloading a cutout of each galaxy from www.legacysurvey.org
+def galaxy_image_exporter(table, ellipse = True, show = True, save = True):  #Downloading a cutout of each galaxy from www.legacysurvey.org
     for glx in table:
         pixscale = 0.1
         size = int(120*glx['d26']/pixscale)
         url = 'https://www.legacysurvey.org/viewer/cutout.jpg?ra=' +str(glx['ra'])+ '&dec=' +str(glx['dec'])+ '&layer=ls-dr9&pixscale='+str(pixscale)+'&size='+str(size)
-
         img = Image.open(urllib.request.urlopen(url))
         if ellipse:
             draw_ellipse_on_png(img,size/2-0.5,size/2-0.5,glx['ba'],glx['pa'],glx['d26']*60,pixscale)
@@ -63,8 +62,6 @@ def galaxy_image_exporter(table,ellipse = True, show = True, save = False):  #Do
             file_name = str(glx['galaxy']) + ".jpg"
             file_path = path + r"\output" + "\\"
             img.save(file_path+file_name)
-            urllib.request.urlretrieve(url, file_path+file_name)
-
 
 
 table = openFITS(r'sga2020-2masx.fits')
