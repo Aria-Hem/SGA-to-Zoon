@@ -6,8 +6,8 @@ from astropy.visualization import astropy_mpl_style
 import urllib
 import pathlib
 from PIL import Image
+from alive_progress import alive_bar
 path = str(pathlib.Path(__file__).parent.resolve())
-
 
 def data_coordinate_plot(table): #Ploting RA and DEC of the Galaxies
     RA = table['ra']
@@ -47,7 +47,7 @@ def draw_ellipse_on_png(im, x0, y0, ba, pa, major_axis_diameter_arcsec,
     paste_shift_y = int(y0 - rotated_height / 2)
     im.paste(rotated, (paste_shift_x, paste_shift_y), rotated)
 
-def galaxy_image_exporter(table, ellipse = True, show = True, save = True):  #Downloading a cutout of each galaxy from www.legacysurvey.org
+def galaxy_image_exporter(table, ellipse = True, show = False, save = True):  #Downloading a cutout of each galaxy from www.legacysurvey.org
     for glx in table:
         pixscale = 0.1
         size = int(120*glx['d26']/pixscale)
@@ -59,12 +59,14 @@ def galaxy_image_exporter(table, ellipse = True, show = True, save = True):  #Do
             plt.imshow(img)
             plt.show()
         if save:
-            file_name = str(glx['galaxy']) + ".jpg"
+            file_name = str(glx['sga_id']) + ".jpg"
             file_path = path + r"\output" + "\\"
             img.save(file_path+file_name)
+        yield
 
 
 table = openFITS(r'sga2020-2masx.fits')
 #data_coordinate_plot(table)
-galaxy_image_exporter(table)
-
+with alive_bar(len(table)) as bar:
+    for i in galaxy_image_exporter(table):
+        bar()
