@@ -7,9 +7,23 @@ import urllib
 import pathlib
 from PIL import Image, ImageDraw, ImageFont
 from alive_progress import alive_bar
+import socks
+import socket
+import ssl
 import time
 
 #Initial variables and actions
+
+IP_ADDR = '127.0.0.1'
+PORT = 8080
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+socks.set_default_proxy(socks.SOCKS5, IP_ADDR, PORT)
+socket.socket = socks.socksocket
+
 path = str(pathlib.Path(__file__).parent.resolve())
 
 
@@ -70,7 +84,7 @@ def galaxy_image_exporter(table, ellipse = True, show = False, save = True):  #D
                 pixscale = 0.1
                 size = int(120*glx['d26']/pixscale)
                 url = 'https://www.legacysurvey.org/viewer/cutout.jpg?ra=' +str(glx['ra'])+ '&dec=' +str(glx['dec'])+ '&layer=ls-dr9&pixscale='+str(pixscale)+'&size='+str(size)
-                img = Image.open(urllib.request.urlopen(url))
+                img = Image.open(urllib.request.urlopen(url,context = ctx))
 
                 file = open(path+r'\progress.txt','w')
                 file.write(str(glx['sga_id']))
