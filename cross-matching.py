@@ -34,7 +34,7 @@ def openFITS(path , hdu = 1): #Opening the FITS file
     return fitsfile[hdu].data
 
 def opentbl(path):
-    return pandas.read_table(mainpath + path, comment='#',delim_whitespace=True)
+    return np.array(pandas.read_table(mainpath + path, comment='\\',delim_whitespace=True)) , pandas.read_table(mainpath + path, comment='#',delim_whitespace=True) 
     
 def area_check(table,RA,DEC,Riso):
     N = len(table[DEC]) - 2
@@ -70,10 +70,10 @@ def area_size_check(table,RA,DEC,Riso,upper,lower):
     return in_area
 
 
-def match_for_size(table,RA,DEC,ref_table,in_area):
+def match_for_size(table,RA,DEC,ref_table,in_area,fornames):
     margin = 1/360
-    matching = Table({'ra':[],'dec':[]},names=('ra','dec'))
-    unmatching =  Table({'ra':[],'dec':[]},names=('ra','dec'))
+    matching = Table({'ra':[0],'dec':[0],'NAME':[''],'NED_NAME':['']},names=('ra','dec','NAME','NED_NAME'))
+    unmatching = Table({'ra':[0],'dec':[0],'NAME':[''],'NED_NAME':['']},names=('ra','dec','NAME','NED_NAME'))
     N = len(table[DEC]) - 2
     counter = 0
     with alive_bar(N) as bar:
@@ -82,7 +82,7 @@ def match_for_size(table,RA,DEC,ref_table,in_area):
                 c = 0
                 ra = float(table[RA][i+2])
                 dec = float(table[DEC][i+2])
-                temp = Table({'ra':[ra],'dec':[dec]},names=('ra','dec'))
+                temp = Table({'ra':[ra],'dec':[dec],'NAME':[fornames[i+1][1]],'NED_NAME':[fornames[i+1][0]]},names=('ra','dec','NAME','NED_NAME'))
                 for glx in ref_table:
                     if np.abs(glx['ra']-ra) <= margin and np.abs(glx['dec']-dec) <= margin :
                         counter += 1
@@ -92,6 +92,8 @@ def match_for_size(table,RA,DEC,ref_table,in_area):
                 if c==0:
                     unmatching = vstack([unmatching,temp])
             bar()
+    matching.remove_row(0)
+    unmatching.remove_row(0)
     return matching, unmatching ,counter
 
 
@@ -106,7 +108,6 @@ def cross_matching(table, RA, DEC, ref_table, in_area):
             if in_area[i]:
                 ra = float(table[RA][i+2])
                 dec = float(table[DEC][i+2])
-                temp = Table({'ra':[ra],'dec':[dec]},names=('ra','dec'))
                 for glx in ref_table:
                     if np.abs(glx['ra']-ra) <= margin and np.abs(glx['dec']-dec) <= margin :
                         counter += 1
@@ -119,25 +120,28 @@ ref_table = openFITS(r'sga-query.fits')
 RA = '\\'
 DEC = 'WXSC'
 Riso = '(jarrett'
-table = opentbl(r'\WXSC_Riso_1arcmin_10Jun2024.tbl')
+fornames, table = opentbl(r'\WXSC_Riso_1arcmin_10Jun2024.tbl')
+
+print(Table(openFITS('unmatching.fits')))
 
 in_area = area_size_check(table,RA,DEC,Riso,10000,0)
 
-#ra = np.array([])
-#dec = np.array([])
-#for i in range(len(table[DEC])-2):
-#    if in_area[i] == 1:
-#        ra = np.append(ra,float(table[RA][i+2]))
-#        dec = np.append(dec,float(table[DEC][i+2]))
-#plt.scatter(ra,dec, marker = '.')
-#plt.title('Coordinate of the Galaxies in the FITS file')
-#plt.xlabel('RA (deg)')
-#plt.ylabel('DEC (deg)')
-#plt.show()
+ra = np.array([])
+dec = np.array([])
+for i in range(len(table[DEC])-2):
+    if in_area[i] == 1:
+        ra = np.append(ra,float(table[RA][i+2]))
+        dec = np.append(dec,float(table[DEC][i+2]))
+plt.scatter(ra,dec, marker = '.')
+plt.title('Coordinate of the Galaxies in the FITS file')
+plt.xlabel('RA (deg)')
+plt.ylabel('DEC (deg)')
+plt.show()
 
-matching, unmatching , counter = match_for_size(table,RA,DEC,ref_table,in_area)
+matching, unmatching , counter = match_for_size(table,RA,DEC,ref_table,in_area,fornames)
 matching.write('matching.fits', format='fits',overwrite=True)
 unmatching.write('unmatching.fits', format='fits',overwrite=True)
+
 
 data_coordinate_plot(matching)
 data_coordinate_plot(unmatching)
